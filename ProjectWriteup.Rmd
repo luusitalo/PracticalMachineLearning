@@ -39,12 +39,6 @@ testing<-testing[,mostly_data]
 #Model
 A random forest model is fit to the data, using all the other remaining variables as explaining variables.
 
-```{r echo=FALSE}
-set.seed(123)
-InTrain<-createDataPartition(y=training$classe,p=0.25,list=FALSE)
-trainingSmall<-training[InTrain,]
-```
-
 trainControl is used to define that the algorithm should perform a 10-fold cross-validation to evaluate the out-of-sample error.
 
 ```{r}
@@ -57,14 +51,13 @@ print(fit)
 The models gives a very high prediction accuracy, so it can be concluded that the removed variables (those including > 50 % NAs) are not needed to improve the prediction.
 
 #Cross-validation
-10-fold cross-validation was performed within the training algorithm to evaluate the out of sample error rate (see the model fit).
+10-fold cross-validation was performed within the training algorithm to evaluate the out of sample error rate (see the model fit). The confusion matrix shows only 2 misclassifications out of 19622, resulting an estimated out of sample error rate of 0.01 %.
 
 ```{r}
 print(fit$finalModel)
 ```
 
 #Discussion
-and why you made the choices you did. 
 
 The random forest models was chosen for three main reasons:
 - its  good prediction results in many cases
