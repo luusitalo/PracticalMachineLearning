@@ -1,0 +1,74 @@
+---
+title: 'Practical Machine Learning Course Project: Writeup'
+author: "L Uusitalo"
+date: "08/21/2015"
+output: html_document
+---
+
+#Introduction
+
+This data comes from automatic measurements taken from people doing weight lift exercises in 5 different ways. The goal of this exercise is to predict the how they exercised ("classe" variable, taking values A-E), based on any other variables in the data. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases. 
+
+
+#Data aquisition
+
+The data can be aqcuired using this code:
+```{r echo=FALSE}
+setwd("/home/laurau/CourseraDataScience/PractMachLearning/")
+```
+
+```{r}
+download.file("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "training.csv", quiet = FALSE)
+download.file("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", "testing.csv", quiet = FALSE)
+
+training<-read.csv("training.csv", na.strings=c("NA",""))
+testing<-read.csv("testing.csv", na.strings=c("NA",""))    
+
+```
+
+##Data cleaning
+
+The data includes a large number of variables that are mostly NA. While these may potentially be useful predictors, but as the number of predictors is very big, it will be easier to see if the model fit will be good even with fewer variables. Remove variables with > 50 % NA.
+
+```{r}
+mostly_data<-apply(!is.na(training),2,sum)>(nrow(training)/2)
+training<-training[,mostly_data]
+testing<-testing[,mostly_data]
+```
+
+#Model
+A random forest model is fit to the data, using all the other remaining variables as explaining variables.
+
+```{r echo=FALSE}
+set.seed(123)
+InTrain<-createDataPartition(y=training$classe,p=0.25,list=FALSE)
+trainingSmall<-training[InTrain,]
+```
+
+trainControl is used to define that the algorithm should perform a 10-fold cross-validation to evaluate the out-of-sample error.
+
+```{r}
+library(caret)
+tr<-trainControl(method="cv",number=10)
+fit<-train(classe ~ ., method="rf", data=training, trControl=tr, allowParallel=TRUE)
+print(fit)
+```
+
+The models gives a very high prediction accuracy, so it can be concluded that the removed variables (those including > 50 % NAs) are not needed to improve the prediction.
+
+#Cross-validation
+10-fold cross-validation was performed within the training algorithm to evaluate the out of sample error rate (see the model fit).
+
+```{r}
+print(fit$finalModel)
+```
+
+#Discussion
+and why you made the choices you did. 
+
+The random forest models was chosen for three main reasons:
+- its  good prediction results in many cases
+- the fact that it is not sensitive to possible skweness in the data and hence does not require so much pre-processing
+- the data includes both numeric and factor variables, and these are morre conveniently handled in a decision tree setting, compared to e.g. regression models.
+
+The variables including > 50 % of NAs were removed to speed up the model fitting process. Since the data includes a high number of variables and as ahown, a smaller number was able to predict the outcome, as shown. 
