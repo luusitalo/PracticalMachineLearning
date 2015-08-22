@@ -82,8 +82,12 @@ training&lt;-read.csv(&quot;training.csv&quot;, na.strings=c(&quot;NA&quot;,&quo
 testing&lt;-read.csv(&quot;testing.csv&quot;, na.strings=c(&quot;NA&quot;,&quot;&quot;))    </code></pre>
 <div id="data-cleaning" class="section level2">
 <h2>Data cleaning</h2>
+<p>First, remove first 7 columns since they include row numbers, usernames etc that should be irrelevant to the resut and might be misleading: the data is oedered by the class variable, so the row number may become a very good predictor although it may not have nothing to do with the result in the out of training data samples.</p>
 <p>The data includes a large number of variables that are mostly NA. While these may potentially be useful predictors, but as the number of predictors is very big, it will be easier to see if the model fit will be good even with fewer variables. Remove variables with &gt; 50 % NA.</p>
-<pre class="r"><code>mostly_data&lt;-apply(!is.na(training),2,sum)&gt;(nrow(training)/2)
+<pre class="r"><code>training&lt;-training[,-c(1:7)]
+testing&lt;-testing[,-c(1:7)]
+
+mostly_data&lt;-apply(!is.na(training),2,sum)&gt;(nrow(training)/2)
 training&lt;-training[,mostly_data]
 testing&lt;-testing[,mostly_data]</code></pre>
 </div>
@@ -95,7 +99,8 @@ testing&lt;-testing[,mostly_data]</code></pre>
 <pre class="r"><code>library(caret)</code></pre>
 <pre><code>## Loading required package: lattice
 ## Loading required package: ggplot2</code></pre>
-<pre class="r"><code>tr&lt;-trainControl(method=&quot;cv&quot;,number=10)
+<pre class="r"><code>set.seed(123)
+tr&lt;-trainControl(method=&quot;cv&quot;,number=10)
 fit&lt;-train(classe ~ ., method=&quot;rf&quot;, data=training, trControl=tr, allowParallel=TRUE)</code></pre>
 <pre><code>## Loading required package: randomForest
 ## randomForest 4.6-10
@@ -104,47 +109,52 @@ fit&lt;-train(classe ~ ., method=&quot;rf&quot;, data=training, trControl=tr, al
 <pre><code>## Random Forest 
 ## 
 ## 19622 samples
-##    59 predictors
+##    52 predictors
 ##     5 classes: 'A', 'B', 'C', 'D', 'E' 
 ## 
 ## No pre-processing
 ## Resampling: Cross-Validated (10 fold) 
-## Summary of sample sizes: 17658, 17659, 17659, 17661, 17660, 17659, ... 
+## Summary of sample sizes: 17660, 17661, 17659, 17660, 17658, 17660, ... 
 ## Resampling results across tuning parameters:
 ## 
-##   mtry  Accuracy   Kappa      Accuracy SD   Kappa SD    
-##    2    0.9970441  0.9962612  0.0015532671  0.0019646476
-##   41    0.9999490  0.9999355  0.0001611762  0.0002038694
-##   81    0.9997961  0.9997421  0.0003563988  0.0004508044
+##   mtry  Accuracy   Kappa      Accuracy SD  Kappa SD   
+##    2    0.9951081  0.9938119  0.001982319  0.002507699
+##   27    0.9953119  0.9940695  0.002249619  0.002846339
+##   52    0.9901644  0.9875577  0.002941572  0.003721986
 ## 
 ## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was mtry = 41.</code></pre>
-<p>The models gives a very high prediction accuracy, so it can be concluded that the removed variables (those including &gt; 50 % NAs) are not needed to improve the prediction.</p>
+## The final value used for the model was mtry = 27.</code></pre>
+<p>The model gives a very high prediction accuracy (99.5 %), so it can be concluded that the removed variables (those including &gt; 50 % NAs) are not needed to improve the prediction.</p>
 </div>
-<div id="cross-validation" class="section level1">
-<h1>Cross-validation</h1>
-<p>10-fold cross-validation was performed within the training algorithm to evaluate the out of sample error rate (see the model fit). The confusion matrix shows only 2 misclassifications out of 19622, resulting an estimated out of sample error rate of 0.01 %.</p>
+<div id="cross-validation-and-out-of-sample-error-estimate" class="section level1">
+<h1>Cross-validation and out of sample error estimate</h1>
+<p>10-fold cross-validation was performed within the training algorithm to evaluate the out of sample error rate (see the model fit). The confusion matrix shows 81 misclassifications out of 19622, resulting an <strong>estimated out of sample error rate of approximately 0.5 %</strong> (see the output below).</p>
 <pre class="r"><code>print(fit$finalModel)</code></pre>
 <pre><code>## 
 ## Call:
 ##  randomForest(x = x, y = y, mtry = param$mtry, allowParallel = TRUE) 
 ##                Type of random forest: classification
 ##                      Number of trees: 500
-## No. of variables tried at each split: 41
+## No. of variables tried at each split: 27
 ## 
-##         OOB estimate of  error rate: 0.01%
+##         OOB estimate of  error rate: 0.45%
 ## Confusion matrix:
 ##      A    B    C    D    E  class.error
-## A 5580    0    0    0    0 0.0000000000
-## B    1 3796    0    0    0 0.0002633658
-## C    0    1 3421    0    0 0.0002922268
-## D    0    0    0 3216    0 0.0000000000
-## E    0    0    0    0 3607 0.0000000000</code></pre>
+## A 5575    3    1    0    1 0.0008960573
+## B   20 3771    6    0    0 0.0068475112
+## C    0   10 3403    9    0 0.0055523086
+## D    0    0   23 3189    4 0.0083955224
+## E    0    1    5    5 3596 0.0030496257</code></pre>
 </div>
 <div id="discussion" class="section level1">
 <h1>Discussion</h1>
-<p>The random forest models was chosen for three main reasons: - its good prediction results in many cases - the fact that it is not sensitive to possible skweness in the data and hence does not require so much pre-processing - the data includes both numeric and factor variables, and these are morre conveniently handled in a decision tree setting, compared to e.g. regression models.</p>
-<p>The variables including &gt; 50 % of NAs were removed to speed up the model fitting process. Since the data includes a high number of variables and as ahown, a smaller number was able to predict the outcome, as shown.</p>
+<p>The random forest models was chosen for three main reasons:</p>
+<ul>
+<li><p>its good prediction results in many cases</p></li>
+<li><p>the fact that it is not sensitive to possible skweness in the data and hence does not require so much pre-processing</p></li>
+<li><p>the data includes both numeric and factor variables, and these are morre conveniently handled in a decision tree setting, compared to e.g. regression models.</p></li>
+</ul>
+<p>The variables including &gt; 50 % of NAs were removed to speed up the model fitting process. The data includes a high number of variables and as shown, a smaller number was able to predict the outcome. Removing the index variables was important for the model performance, as the data were ordered by the outcome variable and therefore the row numver was a strong predictor in the training data.</p>
 </div>
 
 
