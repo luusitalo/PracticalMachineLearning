@@ -7,11 +7,10 @@ output: html_document
 
 #Introduction
 
-This data comes from automatic measurements taken from people doing weight lift exercises in 5 different ways. The goal of this exercise is to predict the how they exercised ("classe" variable, taking values A-E), based on any other variables in the data. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases. 
+This report describes the prediction model done as an exercise for Practical Machine learning class. The data comes from automatic measurements taken from people doing weight lift exercises in 5 different ways. The goal of this exercise is to predict the how they exercised ("classe" variable, taking values A-E), based on any other variables in the data. This report includes the R code needed to build and test the model. It outlines the steps I have taken with the data and modelling to come up with the predictive model for this data.
 
 
 #Data aquisition
-
 The data can be aqcuired using this code:
 ```{r echo=FALSE}
 setwd("/home/laurau/CourseraDataScience/PractMachLearning/")
@@ -23,11 +22,9 @@ download.file("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.cs
 
 training<-read.csv("training.csv", na.strings=c("NA",""))
 testing<-read.csv("testing.csv", na.strings=c("NA",""))    
-
 ```
 
 ##Data cleaning
-
 First, remove first 7 columns since they include row numbers, usernames etc that should be irrelevant to the resut and might be misleading: the data is oedered by the class variable, so the row number may become a very good predictor although it may not have nothing to do with the result in the out of training data samples.
 
 The data includes a large number of variables that are mostly NA. While these may potentially be useful predictors, but as the number of predictors is very big, it will be easier to see if the model fit will be good even with fewer variables. Remove variables with > 50 % NA.
@@ -42,22 +39,20 @@ testing<-testing[,mostly_data]
 ```
 
 #Model
-A random forest model is fit to the data, using all the other remaining variables as explaining variables.
+A random forest model is fit to the data, using all the other remaining variables as explaining variables. trControl parameter is used to specify that the algorithm should evaluate the out-of-bag error rate using the oob method ([source](http://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr)). This method is comparable with cross-validation.
 
-trainControl is used to define that the algorithm should perform a 10-fold cross-validation to evaluate the out-of-sample error.
-
-```{r cache=TRUE}
+```{r}
 library(caret)
 set.seed(123)
-tr<-trainControl(method="cv",number=10)
-fit<-train(classe ~ ., method="rf", data=training, trControl=tr, allowParallel=TRUE)
+#tr<-trainControl(method="cv",number=10)
+fit<-train(classe ~ ., method="rf", data=training, trControl = trainControl(method = "oob"), allowParallel=TRUE)
 print(fit)
 ```
 
-The model gives a very high prediction accuracy (99.5 %), so it can be concluded that the removed variables (those including > 50 % NAs) are not needed to improve the prediction.
+The model gives a very high prediction accuracy (99.6 %), so it can be concluded that the removed variables (those including > 50 % NAs) are not needed to improve the prediction.
 
 #Cross-validation and out of sample error estimate
-10-fold cross-validation was performed within the training algorithm to evaluate the out of sample error rate (see the model fit). The confusion matrix shows 81 misclassifications out of 19622, resulting an **estimated out of sample error rate of approximately 0.5 %** (see the output below).
+Out-of-bag error vas estimated using the oob method available for random forests in R. The method is based on the fact that random forest algorithm uses bootstrapping sampling to construct the trees. In the oob validation, about one third of the samples are left out from the construction of each tree,and these cases are used to validate the tree. More information can be found [here](http://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr). The confusion matrix shows 88 misclassifications out of 19622, resulting an **estimated out of sample error rate of 0.45 %** (see the output below). (The same error rate was estimated using 10-fold cross-validation in earlier trials by the author. However, the oobn method resulted in much quicker model fitting.)
 
 ```{r}
 print(fit$finalModel)

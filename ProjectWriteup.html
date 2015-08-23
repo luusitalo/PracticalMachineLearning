@@ -70,7 +70,7 @@ img {
 
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
-<p>This data comes from automatic measurements taken from people doing weight lift exercises in 5 different ways. The goal of this exercise is to predict the how they exercised (“classe” variable, taking values A-E), based on any other variables in the data. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.</p>
+<p>This report describes the prediction model done as an exercise for Practical Machine learning class. The data comes from automatic measurements taken from people doing weight lift exercises in 5 different ways. The goal of this exercise is to predict the how they exercised (“classe” variable, taking values A-E), based on any other variables in the data. This report includes the R code needed to build and test the model. It outlines the steps I have taken with the data and modelling to come up with the predictive model for this data.</p>
 </div>
 <div id="data-aquisition" class="section level1">
 <h1>Data aquisition</h1>
@@ -94,14 +94,13 @@ testing&lt;-testing[,mostly_data]</code></pre>
 </div>
 <div id="model" class="section level1">
 <h1>Model</h1>
-<p>A random forest model is fit to the data, using all the other remaining variables as explaining variables.</p>
-<p>trainControl is used to define that the algorithm should perform a 10-fold cross-validation to evaluate the out-of-sample error.</p>
+<p>A random forest model is fit to the data, using all the other remaining variables as explaining variables. trControl parameter is used to specify that the algorithm should evaluate the out-of-bag error rate using the oob method (<a href="http://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr">source</a>). This method is comparable with cross-validation.</p>
 <pre class="r"><code>library(caret)</code></pre>
 <pre><code>## Loading required package: lattice
 ## Loading required package: ggplot2</code></pre>
 <pre class="r"><code>set.seed(123)
-tr&lt;-trainControl(method=&quot;cv&quot;,number=10)
-fit&lt;-train(classe ~ ., method=&quot;rf&quot;, data=training, trControl=tr, allowParallel=TRUE)</code></pre>
+#tr&lt;-trainControl(method=&quot;cv&quot;,number=10)
+fit&lt;-train(classe ~ ., method=&quot;rf&quot;, data=training, trControl = trainControl(method = &quot;oob&quot;), allowParallel=TRUE)</code></pre>
 <pre><code>## Loading required package: randomForest
 ## randomForest 4.6-10
 ## Type rfNews() to see new features/changes/bug fixes.</code></pre>
@@ -113,38 +112,36 @@ fit&lt;-train(classe ~ ., method=&quot;rf&quot;, data=training, trControl=tr, al
 ##     5 classes: 'A', 'B', 'C', 'D', 'E' 
 ## 
 ## No pre-processing
-## Resampling: Cross-Validated (10 fold) 
-## Summary of sample sizes: 17660, 17661, 17659, 17660, 17658, 17660, ... 
 ## Resampling results across tuning parameters:
 ## 
-##   mtry  Accuracy   Kappa      Accuracy SD  Kappa SD   
-##    2    0.9951081  0.9938119  0.001982319  0.002507699
-##   27    0.9953119  0.9940695  0.002249619  0.002846339
-##   52    0.9901644  0.9875577  0.002941572  0.003721986
+##   mtry  Accuracy   Kappa    
+##    2    0.9958720  0.9947782
+##   27    0.9955662  0.9943914
+##   52    0.9906228  0.9881370
 ## 
 ## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was mtry = 27.</code></pre>
-<p>The model gives a very high prediction accuracy (99.5 %), so it can be concluded that the removed variables (those including &gt; 50 % NAs) are not needed to improve the prediction.</p>
+## The final value used for the model was mtry = 2.</code></pre>
+<p>The model gives a very high prediction accuracy (99.6 %), so it can be concluded that the removed variables (those including &gt; 50 % NAs) are not needed to improve the prediction.</p>
 </div>
 <div id="cross-validation-and-out-of-sample-error-estimate" class="section level1">
 <h1>Cross-validation and out of sample error estimate</h1>
-<p>10-fold cross-validation was performed within the training algorithm to evaluate the out of sample error rate (see the model fit). The confusion matrix shows 81 misclassifications out of 19622, resulting an <strong>estimated out of sample error rate of approximately 0.5 %</strong> (see the output below).</p>
+<p>Out-of-bag error vas estimated using the oob method available for random forests in R. The method is based on the fact that random forest algorithm uses bootstrapping sampling to construct the trees. In the oob validation, about one third of the samples are left out from the construction of each tree,and these cases are used to validate the tree. More information can be found <a href="http://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr">here</a>. The confusion matrix shows 88 misclassifications out of 19622, resulting an <strong>estimated out of sample error rate of 0.45 %</strong> (see the output below). (The same error rate was estimated using 10-fold cross-validation in earlier trials by the author. However, the oobn method resulted in much quicker model fitting.)</p>
 <pre class="r"><code>print(fit$finalModel)</code></pre>
 <pre><code>## 
 ## Call:
 ##  randomForest(x = x, y = y, mtry = param$mtry, allowParallel = TRUE) 
 ##                Type of random forest: classification
 ##                      Number of trees: 500
-## No. of variables tried at each split: 27
+## No. of variables tried at each split: 2
 ## 
 ##         OOB estimate of  error rate: 0.45%
 ## Confusion matrix:
 ##      A    B    C    D    E  class.error
-## A 5575    3    1    0    1 0.0008960573
-## B   20 3771    6    0    0 0.0068475112
-## C    0   10 3403    9    0 0.0055523086
-## D    0    0   23 3189    4 0.0083955224
-## E    0    1    5    5 3596 0.0030496257</code></pre>
+## A 5578    1    0    0    1 0.0003584229
+## B   15 3779    3    0    0 0.0047405847
+## C    0   18 3401    3    0 0.0061367621
+## D    0    0   41 3174    1 0.0130597015
+## E    0    0    0    5 3602 0.0013861935</code></pre>
 </div>
 <div id="discussion" class="section level1">
 <h1>Discussion</h1>
